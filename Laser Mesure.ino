@@ -1,48 +1,40 @@
-#include "SSD1306Ascii.h"
-#include "SSD1306AsciiAvrI2c.h"
+/* This example shows how to use continuous mode to take
+range measurements with the VL53L0X. It is based on
+vl53l0x_ContinuousRanging_Example.c from the VL53L0X API.
+
+The range readings are in units of mm. */
+
 #include <Wire.h>
-#include "Adafruit_VL53L0X.h"
-#include <SPI.h>
+#include <VL53L0X.h>
 
-// 0X3C+SA0 - 0x3C or 0x3D
-#define I2C_ADDRESS 0x3C
+VL53L0X sensor;
 
-// Define proper RST_PIN if required.
-#define RST_PIN -1
-
-SSD1306AsciiAvrI2c oled;
-
-Adafruit_VL53L0X lox = Adafruit_VL53L0X();
-
-void setup() {
+void setup()
+{
   Serial.begin(9600);
-
-  #if RST_PIN >= 0
-  oled.begin(&Adafruit128x64, I2C_ADDRESS, RST_PIN);
-  #else // RST_PIN >= 0
-  oled.begin(&Adafruit128x64, I2C_ADDRESS);
-  #endif // RST_PIN >= 0
   Wire.begin();
 
-  if (!lox.begin()) {
-    Serial.println(F("Failed to boot VL53L0X"));
-    while(1);
-  }
+  sensor.init();
+  sensor.setTimeout(500);
+
+  // Start continuous back-to-back mode (take readings as
+  // fast as possible).  To use continuous timed mode
+  // instead, provide a desired inter-measurement period in
+  // ms (e.g. sensor.startContinuous(100)).
+  sensor.startContinuous();
 }
 
-void loop() {
-  VL53L0X_RangingMeasurementData_t measure;
-  lox.rangingTest(&measure, true); // pass in 'true' to get debug data printout!
+void loop()
+{
 
-  oled.setFont(Adafruit5x7); //without font no text is printed
 
-  oled.clear();
-  oled.println("---------------------");
-  oled.println("--laser-rangefinder--");
-  oled.set2X();
-  oled.print("mm : ");
-  oled.println(measure.RangeMilliMeter);
-  oled.set1X();
+  Serial.print(sensor.readRangeContinuousMillimeters() * 0.1);
+  Serial.print("cm");
 
-  delay(250);
+  
+  if (sensor.timeoutOccurred()) { Serial.print("Error"); }
+
+  Serial.println();
+
+  delay(100);
 }
